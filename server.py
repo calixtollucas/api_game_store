@@ -9,11 +9,13 @@
 from flask import Flask, jsonify, request;
 from DAO.cliente_DAO import cliente_DAO as cliente_DAO;
 from DAO.plataforma_DAO import plataforma_DAO;
+from DAO.categoria_DAO import categoria_DAO;
 
 app = Flask(__name__)
 
 cliente_dao = cliente_DAO()
 plataforma_dao = plataforma_DAO()
+categoria_dao = categoria_DAO()
 
 #CREATE (CADASTRO)
 @app.route('/cadastrar', methods = ['POST'])
@@ -145,6 +147,58 @@ def get_plataforma_by_nome(nome):
         return jsonify({
             'Message': 'Esta plataforma não existe'
         })
+
+
+# CRUD CATEGORIA
+# CREATE de Categoria
+@app.route('/categoria', methods=['POST'])
+def create_categoria():
+    if categoria_dao.create_categoria(request):
+        return jsonify({'message': "Categoria criada com sucesso!"}), 201
+    else:
+        return jsonify({'message': "Erro ao criar a categoria"}), 400
+
+# READ Categoria pelo ID
+@app.route('/categoria/<int:id>', methods=['GET'])
+def get_categoria_by_id(id):
+    categoria = categoria_dao.get_categoria_by_id(id)
+    if categoria:
+        return jsonify({
+            'id': categoria[0],
+            'nome': categoria[1],
+            'ativo': categoria[2]
+        }), 200
+    else:
+        return jsonify({'message': 'Categoria não encontrada via ID'}), 404
+
+# READ Categoria pelo Nome
+@app.route('/categoria/nome/<string:nome>', methods=['GET'])
+def get_categoria_by_nome(nome):
+    categoria = categoria_dao.get_categoria_by_nome(nome)
+    if categoria:
+        return jsonify({
+            'id': categoria[0],
+            'nome': categoria[1],
+            'ativo': categoria[2]
+        }), 200
+    else:
+        return jsonify({'message': 'Categoria não encontrada via nome'}), 404
+
+# UPDATE Categoria
+@app.route('/categoria/<int:id>', methods=['PUT'])
+def update_categoria(id):
+    if categoria_dao.update_categoria(id, request):
+        return jsonify({'message': 'Categoria atualizada com sucesso'}), 200
+    else:
+        return jsonify({'message': 'Erro ao atualizar a categoria'}), 400
+
+# DELETE Categoria
+@app.route('/categoria/<int:id>', methods=['DELETE'])
+def delete_categoria(id):
+    if categoria_dao.delete_categoria(id):
+        return jsonify({'message': 'Categoria deletada com sucesso'}), 200
+    else:
+        return jsonify({'message': 'Erro ao deletar a categoria'}), 400
 
 
 if __name__ == '__main__':
