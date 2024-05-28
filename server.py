@@ -7,23 +7,28 @@
 """
 
 from errno import errorcode
+from sqlite3 import dbapi2
 from flask import Flask, jsonify, request;
 import mysql.connector;
-from mysql.connector import (errorcode, connection)
-from networkx import is_connected
+from mysql.connector import (errorcode, connection, MySQLConnection)
 
 app = Flask(__name__)
+
 db = None
 cursor = None
+
 # função para conectar com o banco de dados
 def connect_database():
 # OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
+    print("Conectando no banco")
     try:
+        global db
         db = mysql.connector.connect(
-        host="localhost",
+        host="127.0.0.1",
+        port="3306",
         user="root",
         password="rukasu",
-        database="loja_gamer"
+        database="loja_gamer",
         )
     
     except mysql.connector.Error as err:
@@ -33,13 +38,16 @@ def connect_database():
             print("Database does not exist")
         else:
             print(err)
+    else:
+        print("Conectado com sucesso!")
 
 def open_cursor():
-    if db.is_connected:
-        cursor = db.cursor()
-    else:
+    print("Abrindo cursor")
+    if (db is None) or not db.is_connected():
         connect_database()
-        open_cursor()
+        return db.cursor(buffered=True)
+    else:
+        return db.cursor(buffered=True)
         
 
 # teste conexao banco
@@ -48,9 +56,12 @@ def testebanco():
     query = '''
     SELECT * FROM cliente;
 '''
+    cursor = open_cursor()
     cursor.execute(query)
     result = cursor.fetchone();
-    return result
+    cursor.close()
+    db.close()
+    return jsonify(result)
 
 
 
@@ -61,13 +72,20 @@ def cadastrar():
     email = request.form['email']
     senha = request.form['senha']
     telefone = request.form['telefone']
-    ativo = request.form.get('ativo', '1')
 
-    query = ("INSERT INTO cliente (nome, email, senha, telefone, ativo) VALUES (%s, %s, %s, %s, %s)")
+    query = f'''
+    INSERT 
+    INTO 
+    cliente (nome, email, senha, telefone) 
+    VALUES ('{nome}', '{email}', '{senha}', '{telefone}')
+    '''
 
-    cursor.execute(query, (nome, email, senha, telefone, ativo))
+    cursor = open_cursor()
+    cursor.execute(query)
+    db.commit()
 
     cursor.close()
+    db.close()
 
     return jsonify({'message': "Cliente cadastrado com sucesso!"}),201
 
