@@ -6,86 +6,20 @@
 - delete
 """
 
-from errno import errorcode
-from sqlite3 import dbapi2
 from flask import Flask, jsonify, request;
-import mysql.connector;
-from mysql.connector import (errorcode, connection, MySQLConnection)
+from DAO.cliente_DAO import cliente_DAO as cliente_DAO;
+from DAO.plataforma_DAO import plataforma_DAO;
 
 app = Flask(__name__)
 
-db = None
-cursor = None
-
-# função para conectar com o banco de dados
-def connect_database():
-# OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
-    print("Conectando no banco")
-    try:
-        global db
-        db = mysql.connector.connect(
-        host="127.0.0.1",
-        port="3306",
-        user="root",
-        password="rukasu",
-        database="loja_gamer",
-        )
-    
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("Something is wrong with your user name or password")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Database does not exist")
-        else:
-            print(err)
-    else:
-        print("Conectado com sucesso!")
-
-def open_cursor():
-    print("Abrindo cursor")
-    if (db is None) or not db.is_connected():
-        connect_database()
-        return db.cursor(buffered=True)
-    else:
-        return db.cursor(buffered=True)
-        
-
-# teste conexao banco
-@app.get("/banco")
-def testebanco():
-    query = '''
-    SELECT * FROM cliente;
-'''
-    cursor = open_cursor()
-    cursor.execute(query)
-    result = cursor.fetchone();
-    cursor.close()
-    db.close()
-    return jsonify(result)
-
-
+cliente_dao = cliente_DAO()
+plataforma_dao = plataforma_DAO()
 
 #CREATE (CADASTRO)
 @app.route('/cadastrar', methods = ['POST'])
 def cadastrar():
-    nome = request.form['nome']
-    email = request.form['email']
-    senha = request.form['senha']
-    telefone = request.form['telefone']
-
-    query = f'''
-    INSERT 
-    INTO 
-    cliente (nome, email, senha, telefone) 
-    VALUES ('{nome}', '{email}', '{senha}', '{telefone}')
-    '''
-
-    cursor = open_cursor()
-    cursor.execute(query)
-    db.commit()
-
-    cursor.close()
-    db.close()
+    
+    cliente_dao.cadastrar(request)
 
     return jsonify({'message': "Cliente cadastrado com sucesso!"}),201
 
@@ -93,25 +27,12 @@ def cadastrar():
 #CREATE (LOGIN)
 @app.route('/login', methods = ['POST'])
 def login():
-    email = request.form['email']
-    senha = request.form['senha']
-
-    query = f'''
-    SELECT *
-    FROM cliente
-    WHERE email = '{email}' AND senha = '{senha}'
-'''
-    cursor = open_cursor()
-    cursor.execute(query)
-    user = cursor.fetchaone()
+    
+    user = cliente_dao.check_login(request)
 
     if user:
-        cursor.close()
-        db.close()
         return jsonify({"Message": "logado com sucesso"}), 200
     else:
-        cursor.close()
-        db.close()
         return jsonify({"Message": "Este usuário não existe"}), 404
 
     
@@ -121,17 +42,7 @@ def login():
 @app.route('/cliente/<int:id>', methods = ['GET'])
 def clientes_id(id):
 
-    query = f'''
-    SELECT nome, email, telefone, ativo
-    FROM cliente
-    WHERE id_cliente = {id}
-'''
-
-    cursor = open_cursor()
-    cursor.execute(query)
-    user = cursor.fetchone()
-    cursor.close()
-    db.close()
+    user = cliente_dao.get_client_by_id(id)
     
     if user:
         return jsonify({
@@ -148,17 +59,7 @@ def clientes_id(id):
 @app.route('/cliente/nome/<string:nome>', methods = ['GET'])
 def cliente_nome(nome):
 
-    query = f'''
-    SELECT *
-    FROM cliente
-    WHERE nome = '{nome}'
-'''
-
-    cursor = open_cursor()
-    cursor.execute(query)
-    user = cursor.fetchone()
-    cursor.close()
-    db.close()
+    user = cliente_dao.get_cliente_by_nome(nome)
     
     if user:
         return jsonify({
@@ -176,17 +77,7 @@ def cliente_nome(nome):
 @app.route('/cliente/email/<string:email>', methods = ['GET'])
 def cliente_email(email):
 
-    query = f'''
-    SELECT *
-    FROM cliente
-    WHERE email = '{email}';
-'''
-    
-    cursor = open_cursor()
-    cursor.execute(query)
-    user = cursor.fetchone()
-    cursor.close()
-    db.close()
+    user = cliente_dao.get_cliente_by_email(email)
 
     if user[5] == 0:
         return jsonify({"Mensagem": "Este usuário não existe"})
@@ -207,45 +98,54 @@ def cliente_email(email):
 #UPDATE 
 @app.route('/cliente/atualizar/<int:id>', methods = ['PUT'])
 def cliente_atualizar(id):
-    novo_nome = request.form['nome']
-    novo_email = request.form ['email']
-    novo_telefone = request.form ['telefone']
     
-    query = f'''
-    UPDATE cliente
-    SET nome = '{novo_nome}', email = '{novo_email}', telefone = '{novo_telefone}'
-    WHERE id_cliente = {id}
-'''
-
-    cursor = open_cursor()
-    cursor.execute(query)
-    db.commit()
-    cursor.close()
-    db.close() 
-    
-    return jsonify({'message': 'Cliente atualizado com sucesso'}), 200
+    if cliente_dao.atualizar_cliente(id, request):
+        return jsonify({'message': 'Cliente atualizado com sucesso'})
+    else:
+        return jsonify({'message': 'O cliente não foi atualizado, verifique se o id é o correto'}), 200
 
 #DELETE
 @app.route('/cliente/alterar_ativo/<int:id>', methods = ['DELETE'])
 def cliente_desativar(id):
    
-    
-    cursor = open_cursor()
-    cursor.execute(f'''SELECT nome, email, telefone, ativo FROM cliente WHERE id_cliente = {id}''')
-    cliente = cursor.fetchone()
-
-    #CLIENTE EXISTE?
-    if not cliente:
-        return jsonify({'message': 'Este cliente não existe'}), 404
+    if cliente_dao.desativar_cliente(id):
+        return jsonify({'message': 'Campo "ativo" alterado com sucesso'}), 200 
     else:
-        #DO CONTRÁRIO:
-        cursor.execute(f'''UPDATE cliente SET ativo = 0 WHERE id_cliente = {id}''')
-        db.commit()
+        return jsonify({'message': 'O cliente não existe, não pode ser desativado'})
+    
 
-    cursor.close()
-    db.close()
+#CRUD PLATAFORMA
+#CREATE
+@app.route('/plataforma', methods = ['POST'])
+def create_plataforma():
     
-    return jsonify({'message': 'Campo "ativo" alterado com sucesso'}), 200
+    if plataforma_dao.create_plataforma(request):
+        return jsonify({
+            'message': 'Plataforma criada com sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'plataforma não foi criada'
+        })
+
+#READ
+
+@app.route('/plataforma/<nome>', methods = ['GET'])
+def get_plataforma_by_nome(nome):
+
+    plataforma = plataforma_DAO.get_plataforma_by_nome(nome)
     
+    if plataforma:
+        return jsonify({
+            'id': plataforma[0],
+            'nome': plataforma[1],
+            'ativo': plataforma[2]
+        })
+    else:
+        return jsonify({
+            'Message': 'Esta plataforma não existe'
+        })
+
+
 if __name__ == '__main__':
     app.run(debug=True)
