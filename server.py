@@ -95,17 +95,40 @@ def cadastrar():
 def login():
     email = request.form['email']
     senha = request.form['senha']
+
+    query = f'''
+    SELECT *
+    FROM cliente
+    WHERE email = '{email}' AND senha = '{senha}'
+'''
+    cursor = open_cursor()
+    cursor.execute(query)
+    user = cursor.fetchaone()
+
+    if user:
+        cursor.close()
+        db.close()
+        return jsonify({"Message": "logado com sucesso"}), 200
+    else:
+        cursor.close()
+        db.close()
+        return jsonify({"Message": "Este usuário não existe"}), 404
+
     
-    cursor.execute("SELECT * FROM cliente WHERE email = %s AND senha = %s", (email, senha))
-    user = cursor.fetchone()
-    cursor.close()
     
 
 #READ BY ID
 @app.route('/cliente/<int:id>', methods = ['GET'])
 def clientes_id(id):
 
-    cursor.execute("SELECT nome, email, telefone, ativo FROM cliente WHERE ID = %s", (id,))
+    query = f'''
+    SELECT nome, email, telefone, ativo
+    FROM cliente
+    WHERE id_cliente = {id}
+'''
+
+    cursor = open_cursor()
+    cursor.execute(query)
     user = cursor.fetchone()
     cursor.close()
     db.close()
@@ -124,8 +147,15 @@ def clientes_id(id):
 #READ BY NAME
 @app.route('/cliente/nome/<string:nome>', methods = ['GET'])
 def cliente_nome(nome):
-    conn = mysql.connection 
-    cursor.execute("SELECT id, email, telefone, ativo FROM cliente WHERE nome = %s", (nome,))
+
+    query = f'''
+    SELECT *
+    FROM cliente
+    WHERE nome = '{nome}'
+'''
+
+    cursor = open_cursor()
+    cursor.execute(query)
     user = cursor.fetchone()
     cursor.close()
     db.close()
@@ -145,19 +175,31 @@ def cliente_nome(nome):
 #READ BY EMAIL
 @app.route('/cliente/email/<string:email>', methods = ['GET'])
 def cliente_email(email):
-    conn = mysql.connection
-    cursor.execute("SELECT id, nome, telefone, ativo FROM cliente WHERE email = %s ", (email,))
+
+    query = f'''
+    SELECT *
+    FROM cliente
+    WHERE email = '{email}';
+'''
+    
+    cursor = open_cursor()
+    cursor.execute(query)
     user = cursor.fetchone()
     cursor.close()
     db.close()
+
+    if user[5] == 0:
+        return jsonify({"Mensagem": "Este usuário não existe"})
     
     if user:
         return jsonify({
             'email': email,
             'id': user[0],
             'nome': user[1],
-            'telefone': user[2],
-            'ativo': user[3],
+            'email': user[2],
+            'senha': user[3],
+            'telefone': user[4],
+            'ativo': user[5],
         })
     else:
         return jsonify({'message': 'Cliente não encontrado via email'})
@@ -168,32 +210,40 @@ def cliente_atualizar(id):
     novo_nome = request.form['nome']
     novo_email = request.form ['email']
     novo_telefone = request.form ['telefone']
-    novo_ativo = request.form ['ativo']
     
-    conn = mysql.connection
-    cursor.execute("UPDATE cliente SET nome = %s, email = %s, telefone = %s, ativo = %s WHERE ID = %s", (novo_nome, novo_email, novo_telefone, novo_ativo, id))
-    mysql.connection.commit()
+    query = f'''
+    UPDATE cliente
+    SET nome = '{novo_nome}', email = '{novo_email}', telefone = '{novo_telefone}'
+    WHERE id_cliente = {id}
+'''
+
+    cursor = open_cursor()
+    cursor.execute(query)
+    db.commit()
+    cursor.close()
     db.close() 
     
     return jsonify({'message': 'Cliente atualizado com sucesso'}), 200
 
 #DELETE
-@app.route('/cliente/alterar_ativo/<int:id>', methods = ['PUT'])
+@app.route('/cliente/alterar_ativo/<int:id>', methods = ['DELETE'])
 def cliente_desativar(id):
-   #CLIENTE EXISTE?
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT nome, email, telefone, ativo FROM cliente WHERE ID = %s", (id,))
-    cliente = cur.fetchone()
-    cur.close()
+   
     
+    cursor = open_cursor()
+    cursor.execute(f'''SELECT nome, email, telefone, ativo FROM cliente WHERE id_cliente = {id}''')
+    cliente = cursor.fetchone()
+
+    #CLIENTE EXISTE?
     if not cliente:
         return jsonify({'message': 'Este cliente não existe'}), 404
-    
-    #DO CONTRÁRIO:
-    cur = mysql.connection.cursor()
-    cur.execute("UPDATE cliente SET ativo = 0 WHERE ID = %s", (id,))
-    mysql.connection.commit()
-    cur.close
+    else:
+        #DO CONTRÁRIO:
+        cursor.execute(f'''UPDATE cliente SET ativo = 0 WHERE id_cliente = {id}''')
+        db.commit()
+
+    cursor.close()
+    db.close()
     
     return jsonify({'message': 'Campo "ativo" alterado com sucesso'}), 200
     
