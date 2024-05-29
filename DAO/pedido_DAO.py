@@ -1,53 +1,6 @@
 import mysql.connector;
 from mysql.connector import (errorcode, connection, MySQLConnection)
 
-class cliente_DAO:
-
-    def __init__(self):
-        pass
-
-    db = None
-    cursor = None
-
-    # função para conectar com o banco de dados
-    def connect_database(self):
-    # OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
-        print("Conectando no banco")
-        try:
-            self.db = mysql.connector.connect(
-            host="127.0.0.1",
-            port="3306",
-            user="root",
-            password="rukasu",
-            database="loja_gamer",
-            )
-        
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
-            else:
-                print(err)
-        else:
-            print("Conectado com sucesso!")
-
-    def open_cursor(self):
-        print("Abrindo cursor")
-        if (self.db is None) or not self.db.is_connected():
-            self.connect_database()
-            return self.db.cursor(buffered=True)
-        else:
-            return self.db.cursor(buffered=True)
-
-"""
-- CRUD PEDIDO
-- Create
-- Read(id, endereco, cliente)
-- update
-- delete
-"""
-
 class pedido_DAO:
     def pedido(self, request):
         endereco = request.form["endereco"]

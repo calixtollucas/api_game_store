@@ -41,7 +41,7 @@ def login():
     
 
 #READ BY ID
-@app.route('/cliente/<int:id>', methods = ['GET'])
+@app.route('/cliente/id/<int:id>', methods = ['GET'])
 def clientes_id(id):
 
     user = cliente_dao.get_client_by_id(id)
@@ -63,7 +63,7 @@ def cliente_nome(nome):
 
     user = cliente_dao.get_cliente_by_nome(nome)
     
-    if user:
+    if user and (user[5]!=0):
         return jsonify({
             'nome': nome,
             'id': user[0],
@@ -117,7 +117,7 @@ def cliente_desativar(id):
     
 
 #CRUD PLATAFORMA
-#CREATE
+#CREATE PLATAFORMA
 @app.route('/plataforma', methods = ['POST'])
 def create_plataforma():
     
@@ -129,15 +129,36 @@ def create_plataforma():
         return jsonify({
             'message': 'plataforma não foi criada'
         })
-
-#READ
-
-@app.route('/plataforma/<nome>', methods = ['GET'])
-def get_plataforma_by_nome(nome):
-
-    plataforma = plataforma_DAO.get_plataforma_by_nome(nome)
     
-    if plataforma:
+#REAG ALL
+@app.route('/plataforma', methods=['GET'])
+def get_all_plataforma():
+    plataformas = plataforma_dao.get_all_plataforma()
+
+    if plataformas:
+
+        retorno = []
+
+        for plataforma in plataformas:
+            retorno.append({
+                'id': plataforma[0],
+                'nome': plataforma[1],
+                'ativo': plataforma[2]
+            })
+
+        return jsonify(retorno)
+    else:
+        jsonify({
+            "message": "Não foi possível acessar os dados ou a tabela está vazia"
+        })
+
+#READ PLATAFORMA BY ID
+@app.route('/plataforma/id/<int:id>', methods = ['GET'])
+def get_plataforma_by_id(id):
+
+    plataforma = plataforma_dao.get_plataforma_by_id(id)
+    
+    if plataforma and (plataforma[2]!=0):
         return jsonify({
             'id': plataforma[0],
             'nome': plataforma[1],
@@ -147,6 +168,37 @@ def get_plataforma_by_nome(nome):
         return jsonify({
             'Message': 'Esta plataforma não existe'
         })
+
+#UPDATE PLATAFORMA
+@app.route('/plataforma/<int:id>', methods=['PUT'])
+def update_plataforma(id):
+
+    updated = plataforma_dao.update_plataforma(request, id)
+
+    if updated:
+        return jsonify({
+            'message': 'Plataforma Atualizada com sucesso'
+        }), 200
+    else:
+        return jsonify({
+            'message': 'A plataforma especificada não existe ou ocorreu algum erro na requisição'
+        }), 200
+
+#DELETE PLATAFORMA
+@app.route('/plataforma/<int:id>', methods = ['DELETE'])
+def delete_plataforma(id):
+    
+    deleted = plataforma_dao.delete_plataforma(id)
+
+    if deleted:
+        return jsonify({
+            'message': 'deletado com sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'A plataforma não existe ou ocorreu algum erro'
+        })
+
 
 
 # CRUD CATEGORIA
@@ -159,7 +211,7 @@ def create_categoria():
         return jsonify({'message': "Erro ao criar a categoria"}), 400
 
 # READ Categoria pelo ID
-@app.route('/categoria/<int:id>', methods=['GET'])
+@app.route('/categoria/id/<int:id>', methods=['GET'])
 def get_categoria_by_id(id):
     categoria = categoria_dao.get_categoria_by_id(id)
     if categoria:

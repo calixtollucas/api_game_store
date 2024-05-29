@@ -62,6 +62,21 @@ class plataforma_DAO:
             return True
         else:
             return False
+        
+    def get_all_plataforma(self):
+        query = f'''
+        SELECT *
+        FROM plataforma;
+'''
+        
+        cursor = self.open_cursor()
+        cursor.execute(query)
+        plataformas = cursor.fetchall()
+
+        cursor.close()
+        self.db.close()
+
+        return plataformas
 
     def get_plataforma_by_nome(self, nome):
         query = f'''
@@ -71,7 +86,8 @@ class plataforma_DAO:
         '''
 
         cursor = self.open_cursor()
-        plataforma = cursor.execute(query)
+        cursor.execute(query)
+        plataforma = cursor.fetchone()
 
         cursor.close()
         self.db.close()
@@ -80,3 +96,65 @@ class plataforma_DAO:
             return plataforma
         else:
             return None
+        
+    def get_plataforma_by_id(self, id):
+        query = f'''
+        SELECT *
+        FROM plataforma
+        WHERE id_plataforma = '{id}'
+'''
+        
+        cursor = self.open_cursor()
+        cursor.execute(query)
+        
+        plataforma = cursor.fetchone()
+
+        cursor.close()
+        self.db.close()
+
+        return plataforma
+    
+    def update_plataforma(self, request, id):
+
+        nome = request.form['nome']
+
+        plataforma = self.get_plataforma_by_id(id)
+
+        if plataforma:
+            print('entrou plataforma update')
+            query = f'''
+            UPDATE plataforma
+            SET nome = '{nome}';
+'''
+            cursor = self.open_cursor()
+            cursor.execute(query)
+            self.db.commit()
+
+            cursor.close()
+            self.db.close()
+
+            return True
+        else:
+            return False
+        
+    def delete_plataforma(self, id):
+
+        plataforma = self.get_plataforma_by_id(id)
+
+        if plataforma:
+            query = f'''
+            UPDATE plataforma
+            SET ativo = 0
+'''
+            
+            cursor = self.open_cursor()
+            cursor.execute(query)
+            self.db.commit()
+
+            cursor.close()
+            self.db.close()
+
+            return True
+        else:
+            return False
+        
