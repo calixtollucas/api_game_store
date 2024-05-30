@@ -9,11 +9,13 @@
 from flask import Flask, jsonify, request;
 from DAO.cliente_DAO import cliente_DAO as cliente_DAO;
 from DAO.plataforma_DAO import plataforma_DAO;
+from produto_DAO import produto_DAO
 
 app = Flask(__name__)
 
 cliente_dao = cliente_DAO()
 plataforma_dao = plataforma_DAO()
+produto_dao = produto_DAO()
 
 #CREATE (CADASTRO)
 @app.route('/cadastrar', methods = ['POST'])
