@@ -76,7 +76,7 @@ class cliente_DAO:
     
     def get_client_by_id(self, id):
         query = f'''
-        SELECT nome, email, telefone, ativo
+        SELECT *
         FROM cliente
         WHERE id_cliente = {id}
     '''
@@ -87,7 +87,7 @@ class cliente_DAO:
         cursor.close()
         self.db.close()
 
-        if user:
+        if user and (user[5]!=0):
             return user
         else:
             return None
@@ -127,7 +127,7 @@ class cliente_DAO:
 
         print("user: "+str(user))
 
-        if user:
+        if user and (user[5]!=0):
             return user
         else:
             return None
