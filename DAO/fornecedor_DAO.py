@@ -1,7 +1,7 @@
 import mysql.connector;
 from mysql.connector import (errorcode, connection, MySQLConnection)
 
-class pedido_DAO:
+class fornecedor_DAO:
 
     def __init__(self):
         pass
@@ -40,16 +40,19 @@ class pedido_DAO:
         else:
             return self.db.cursor(buffered=True)
 
-    def pedido(self, request):
-        endereco = request.form["endereco"]
-        fk_id_cliente = request.form["fk_id_cliente"]
-        fk_id_probuto = request.form["fk_id_probuto"]
-        
+    def fornecedor(self, request):
+        nome = request.form["nome"]
+        cnpj = request.form["cnpj"]
+        email = request.form["email"]
+        fk_id_produto = request.form["fk_id_produto"]
+        ativo = request.form.get('ativo', '1')
+
+
         query = f'''
         INSERT 
         INTO 
-        pedido (endereco, fk_id_cliente, fk_id_probuto) 
-        VALUES ("{endereco}", "{fk_id_cliente}", "{fk_id_probuto}")
+        cliente (nome, cnpj, email, fk_id_produto) 
+        VALUES ("{nome}", "{cnpj}", "{email}", "{fk_id_produto}")
         '''
 
         cursor = self.open_cursor()
@@ -60,12 +63,12 @@ class pedido_DAO:
         self.db.close()
     
     #READ BY ID
-    def get_pedido_by_id(self, id_pedido):
+    def get_fornecedor_by_id(self, id_fornecedor):
 
         query = f'''
-        "SELECT id_pedido, endereco, fk_id_cliente, fk_id_probuto, ativo 
-        FROM pedido 
-        WHERE id_pedido = {id_pedido}",
+        "SELECT id_fornecedor, nome, cnpj, email, fk_id_produto, ativo 
+        FROM fornecedor
+        WHERE id_fornecedor = {id_fornecedor}",
         '''
 
         cursor = self.open_cursor()
@@ -75,12 +78,12 @@ class pedido_DAO:
         cursor.close()
         self.db.close()
     
-    #READ BY ENDERECO
-    def get_pedido_by_cliente_nome(self, endereco):
+    #READ BY cnpj
+    def get_fornecedor_by_cnpj_nome(self, cnpj):
         query = f'''
-        "SELECT id_pedido, endereco, fk_id_cliente, fk_id_probuto, ativo 
-        FROM pedido 
-        WHERE endereco {endereco}"
+        "SELECT id_fornecedor, nome, cnpj, email, fk_id_probuto, ativo 
+        FROM fornecedor 
+        WHERE cnpj {cnpj}"
         '''
 
         cursor = self.open_cursor()
@@ -89,12 +92,12 @@ class pedido_DAO:
         cursor.close()
         self.db.close()
     
-    #READ BY CLIENTE
-    def get_pedido_by_cliente_email(self, fk_id_cliente):
+    #READ BY probuto
+    def get_fornecedor_by_probuto_email(self, fk_id_probuto):
         query = f'''
-        "SELECT id_pedido, endereco, fk_id_cliente, fk_id_probuto, ativo 
-        FROM pedido 
-        WHERE fk_id_cliente {fk_id_cliente}"
+        "SELECT id_fornecedor, nome, cnpj, email, fk_id_probuto, ativo 
+        FROM fornecedor 
+        WHERE fk_id_probuto {fk_id_probuto}"
         '''
     
         cursor = self.open_cursor()
@@ -104,18 +107,19 @@ class pedido_DAO:
         self.db.close()
 
     #UPDATE 
-    def pedido_atualizar(self, id_pedido, request):
-        novo_endereco = request.form ["endereco"]
-        novo_cliente = request.form["fk_id_cliente"]
+    def fornecedor_atualizar(self, id_fornecedor, request):
+        novo_nome = request.form ["nome"]
+        novo_cnpj = request.form["cnpj"]
+        novo_email = request.form["email"]
         novo_probuto = request.form ["fk_id_probuto"]
         novo_ativo = request.form ["ativo"]
     
-        user = self.get_pedido_by_id(id_pedido)
+        user = self.get_fornecedor_by_id(id_fornecedor)
 
         query = f'''
-        "UPDATE pedido 
-        SET fk_id_cliente = "{novo_cliente}", endereco = "{novo_endereco}", fk_id_probuto = "{novo_probuto}", 
-        WHERE id_pedido = {id_pedido}
+        "UPDATE fornecedor
+        SET nome = "{novo_nome}", cnpj = "{novo_cnpj}", email = "{novo_email}", fk_id_probuto = "{novo_probuto}", 
+        WHERE id_fornecedor = {id_fornecedor}
         '''
     
         cursor = self.open_cursor()
@@ -127,15 +131,15 @@ class pedido_DAO:
         return True
 
     #DELETE
-    def pedido_desativar(self, id_pedido):
-        pedido = self.get_pedido_by_id(id_pedido)
+    def fornecedor_desativar(self, id_fornecedor):
+        pedido = self.get_pedido_by_id(id_fornecedor)
         cursor = self.open_cursor()
 
-        #pedido EXISTE?
+        #fornecedor EXISTE?
         if not pedido:
             return False
         else:
-            cursor.execute(f'''UPDATE pedido SET ativo = 0 WHERE id_pedido = {id_pedido}''')
+            cursor.execute(f'''UPDATE fornecedor SET ativo = 0 WHERE id_fornecedor = {id_fornecedor}''')
             self.db.commit()
 
         cursor.close()
