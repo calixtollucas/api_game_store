@@ -11,7 +11,7 @@ class pedido_DAO:
         query = f'''
         INSERT 
         INTO 
-        cliente (endereco, fk_id_cliente, fk_id_probuto) 
+        pedido (endereco, fk_id_cliente, fk_id_probuto) 
         VALUES ("{endereco}", "{fk_id_cliente}", "{fk_id_probuto}")
         '''
 

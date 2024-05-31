@@ -1,41 +1,15 @@
 import mysql.connector;
 from mysql.connector import (errorcode, connection, MySQLConnection)
+from DAO.database_access import database_access
 
 class plataforma_DAO:
 
     db = None
     cursor = None
 
-    # função para conectar com o banco de dados
-    def connect_database(self):
-    # OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
-        print("Conectando no banco")
-        try:
-            self.db = mysql.connector.connect(
-            host="127.0.0.1",
-            port="3306",
-            user="root",
-            password="rukasu",
-            database="loja_gamer",
-            )
+    def __init__(self):
+        self.database_access_dao = database_access()
         
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
-            else:
-                print(err)
-        else:
-            print("Conectado com sucesso!")
-
-    def open_cursor(self):
-        print("Abrindo cursor")
-        if (self.db is None) or not self.db.is_connected():
-            self.connect_database()
-            return self.db.cursor(buffered=True)
-        else:
-            return self.db.cursor(buffered=True)
         
     def create_plataforma(self, request):
         nome = request.form['nome']
@@ -51,13 +25,7 @@ class plataforma_DAO:
             ('{nome}')
         '''
             
-            cursor = self.open_cursor()
-
-            cursor.execute(query)
-            self.db.commit()
-
-            cursor.close()
-            self.db.close()
+            self.database_access_dao.execute_query(query)
 
             return True
         else:
@@ -69,12 +37,7 @@ class plataforma_DAO:
         FROM plataforma;
 '''
         
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        plataformas = cursor.fetchall()
-
-        cursor.close()
-        self.db.close()
+        plataformas = self.database_access_dao.fetch(query)
 
         return plataformas
 
@@ -85,12 +48,7 @@ class plataforma_DAO:
         WHERE nome = '{nome}'
         '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        plataforma = cursor.fetchone()
-
-        cursor.close()
-        self.db.close()
+        plataforma = self.database_access_dao.fetch(query)
 
         if plataforma:
             return plataforma
@@ -104,13 +62,7 @@ class plataforma_DAO:
         WHERE id_plataforma = '{id}'
 '''
         
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        
-        plataforma = cursor.fetchone()
-
-        cursor.close()
-        self.db.close()
+        plataforma = self.database_access_dao.fetch(query)[0]
 
         return plataforma
     
@@ -121,17 +73,13 @@ class plataforma_DAO:
         plataforma = self.get_plataforma_by_id(id)
 
         if plataforma:
-            print('entrou plataforma update')
+
             query = f'''
             UPDATE plataforma
-            SET nome = '{nome}';
+            SET nome = '{nome}'
+            WHERE id_plataforma = '{id}';
 '''
-            cursor = self.open_cursor()
-            cursor.execute(query)
-            self.db.commit()
-
-            cursor.close()
-            self.db.close()
+            self.database_access_dao.execute_query(query)
 
             return True
         else:
@@ -145,14 +93,9 @@ class plataforma_DAO:
             query = f'''
             UPDATE plataforma
             SET ativo = 0
+            WHERE id_plataforma = '{id}'
 '''
-            
-            cursor = self.open_cursor()
-            cursor.execute(query)
-            self.db.commit()
-
-            cursor.close()
-            self.db.close()
+            self.database_access_dao.execute_query(query)
 
             return True
         else:

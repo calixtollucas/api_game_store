@@ -1,165 +1,146 @@
 
 
+from uu import Error
 from flask import Flask, jsonify, request
-from flask_mysqldb import mysql
+import mysql.connector
+from mysql.connector import (errorcode, connection, MySQLConnection)
+from DAO.prod_plat_DAO import prod_plat_DAO
+from DAO.database_access import database_access
 
 
 class produto_DAO:
 
-    db = None
-    cursor = None
+    prod_plat_dao = prod_plat_DAO()
 
-    # função para conectar com o banco de dados
-    def connect_database(self):
-        # OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
-        print("Conectando no banco")
-        try:
-            self.db = mysql.connector.connect(
-                host="127.0.0.1",
-                port="3306",
-                user="root",
-                password="rukasu",
-                database="loja_gamer",
-            )
-
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
-            else:
-                print(err)
-        else:
-            print("Conectado com sucesso!")
-
-    def open_cursor(self):
-        print("Abrindo cursor")
-        if (self.db is None) or not self.db.is_connected():
-            self.connect_database()
-            return self.db.cursor(buffered=True)
-        else:
-            return self.db.cursor(buffered=True)
+    def __init__(self):
+        self.database_access_dao = database_access()
 
     # CREATE
-    def cadastrar():
+    def cadastrar(self, request):
         nome = request.form['nome']
         preco = request.form['preco']
         plataforma = request.form['plataforma']
         categoria = request.form['categoria']
-        ativo = request.form.get('ativo', '1')
 
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute(
-            f'''INSERT INTO produto (nome, preco, plataforma, categoria ativo) VALUES ({nome}, {preco},{plataforma}, {categoria} ,{ativo})''')
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({'message': "Produto cadastrado com sucesso!"}), 201
+        query = f'''
+        INSERT 
+        INTO produto (nome, preco, fk_id_categoria) 
+        VALUES ('{nome}', '{preco}','{categoria}')
+        '''
+        try:
+            
+            self.database_access_dao.execute_query(query)
+
+            id_produto = self.get_produto_by_nome(nome)[0]
+
+            self.prod_plat_dao.create_prod_plat(id_produto, plataforma)
+
+            return True
+        except Error as err:
+            print(err)
+            return False
 
     # READ (ID)
-    def get_produto_by_id(self):
+    def get_produto_by_id(self, id):
         query = f'''
-        SELECT nome, preco, plataforma, categoria, ativo
-        FROM produto
-        WHERE id_produto = {id}
+        select p.id_produto, p.nome, p.preco, c.nome as categoria, plat.nome as plataforma, p.ativo
+        from produto as p
+        INNER JOIN categoria as c ON p.fk_id_categoria = c.id_categoria
+        INNER JOIN prod_plat as pd ON pd.fk_id_produto = p.id_produto
+        INNER JOIN plataforma as plat ON plat.id_plataforma = pd.fk_id_plataforma
+        where p.id_produto = '{id}';
     '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        user = cursor.fetchone()
-        cursor.close()
-        self.db.close()
+        user = self.database_access_dao.fetch(query)[0]
 
-        if user:
+
+        if user and (user[4]!=0):
             return user
         else:
             return None
 
     # READ (NOME)
 
-    def produto_nome(self, nome):
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT preco, plataforma, categoria, ativo FROM produto WHERE nome = %s", (nome,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
+    def get_produto_by_nome(self, nome):
+
+        query = f'''
+        select p.id_produto, p.nome, p.preco, c.nome as categoria, plat.nome as plataforma, p.ativo
+        from produto as p
+        INNER JOIN categoria as c ON p.fk_id_categoria = c.id_categoria
+        INNER JOIN prod_plat as pd ON pd.fk_id_produto = p.id_produto
+        INNER JOIN plataforma as plat ON plat.id_plataforma = pd.fk_id_plataforma
+        where p.nome = '{nome}';
+'''
+        
+        user = self.database_access_dao.fetch(query)
 
         if user:
-            return jsonify({
-                'id': id,
-                'nome': user[0],
-                'preco': user[1],
-                'plataforma': user[2],
-                'categoria': user[3],
-                'ativo': user[4]
-            }), 200
+            return user
         else:
-            return jsonify({'message': 'Produto não encontrado via nome'}), 404
+            return None
 
     # READ (PLATAFORMA)
     def produto_plataforma(self, plataforma):
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT nome, preco, categoria, ativo FROM produto WHERE plataforma = %s", (plataforma,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
+
+        plataforma = plataforma.upper()
+
+        query = f'''
+        select p.id_produto, p.nome, p.preco, c.nome as categoria, plat.nome as plataforma, p.ativo
+        from produto as p
+        INNER JOIN categoria as c ON p.fk_id_categoria = c.id_categoria
+        INNER JOIN prod_plat as pd ON pd.fk_id_produto = p.id_produto
+        INNER JOIN plataforma as plat ON plat.id_plataforma = pd.fk_id_plataforma
+        where plat.nome = '{plataforma}';
+'''
+        
+        user = self.database_access_dao.fetch(query)
 
         if user:
-            return jsonify({
-                'id': id,
-                'nome': user[0],
-                'preco': user[1],
-                'plataforma': user[2],
-                'categoria': user[3],
-                'ativo': user[4]
-            }), 200
+            return user
         else:
-            return jsonify({'message': 'Produto não encontrado via plataforma'}), 404
+            return None
 
     # READ (CATEGORIA)
     def produto_categoria(self, categoria):
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT nome, preco, plataforma, ativo FROM produto WHERE categoria = %s", (categoria,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
 
-        if user:
-            return jsonify({
-                'id': id,
-                'nome': user[0],
-                'preco': user[1],
-                'plataforma': user[2],
-                'categoria': user[3],
-                'ativo': user[4]
-            }), 200
+        query = f'''
+        select p.id_produto, p.nome, p.preco, c.nome as categoria, plat.nome as plataforma, p.ativo
+        from produto as p
+        INNER JOIN categoria as c ON p.fk_id_categoria = c.id_categoria
+        INNER JOIN prod_plat as pd ON pd.fk_id_produto = p.id_produto
+        INNER JOIN plataforma as plat ON plat.id_plataforma = pd.fk_id_plataforma
+        where c.nome = '{categoria}';
+'''
+        
+        produtos = self.database_access_dao.fetch(query)
+        result = []
+
+        if produtos:
+            return produtos
         else:
-            return jsonify({'message': 'Produto não encontrado via categoria'}), 404
+            return None
 
     # READ (TIPO) !!!PENDENTE!!!
 
     # UPDATE
-    def atualizar_produto(self, ID, nome, preco, plataforma, categoria, ativo):
-        conn = mysql.connect()
-        cursor = conn.cursor()
+    def atualizar_produto(self, request):
 
-        query = f""" 
-        UPDATE produto
-        SET nome = '{nome}', preco = '{preco}', plataforma = '{plataforma}',
-        categoria = '{categoria}', '{ativo}'
-        """
+        nome = request.form['nome']
+        preco = request.form['preco']
+        plataforma = request.form['plataforma']
+        categoria = request.form['categoria']
 
-        cursor.execute(query)
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        try:
+            query = f""" 
+            UPDATE produto
+            SET nome = '{nome}', preco = '{preco}', plataforma = '{plataforma}',categoria = '{categoria}'
+            """
+
+            self.database_access_dao.execute_query(query)
+
+            return True
+        except:
+            return False
 
     # DELETE (desativar)
     def desativar_cliente(self, id):

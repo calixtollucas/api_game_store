@@ -1,46 +1,16 @@
 import mysql.connector;
 from mysql.connector import (errorcode, connection, MySQLConnection)
+from DAO.database_access import database_access
 
 class cliente_DAO:
 
     def __init__(self):
-        pass
-
-    db = None
-    cursor = None
-
-    # função para conectar com o banco de dados
-    def connect_database(self):
-    # OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
-        print("Conectando no banco")
-        try:
-            self.db = mysql.connector.connect(
-            host="127.0.0.1",
-            port="3306",
-            user="root",
-            password="rukasu",
-            database="loja_gamer",
-            )
-        
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
-            else:
-                print(err)
-        else:
-            print("Conectado com sucesso!")
-
-    def open_cursor(self):
-        print("Abrindo cursor")
-        if (self.db is None) or not self.db.is_connected():
-            self.connect_database()
-            return self.db.cursor(buffered=True)
-        else:
-            return self.db.cursor(buffered=True)
+        self.database_access_dao = database_access()
+        self.db = None
+        self.cursor = None
 
     def cadastrar(self, request):
+
         nome = request.form['nome']
         email = request.form['email']
         senha = request.form['senha']
@@ -53,12 +23,7 @@ class cliente_DAO:
         VALUES ('{nome}', '{email}', '{senha}', '{telefone}')
         '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-
-        cursor.close()
-        self.db.close()
+        self.database_access_dao.execute_query(query)
 
     def check_login(self, request):
         email = request.form['email']
@@ -69,9 +34,7 @@ class cliente_DAO:
         FROM cliente
         WHERE email = '{email}' AND senha = '{senha}'
     '''
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        user = cursor.fetchone()
+        user = self.database_access_dao.fetch(query)
         return user
     
     def get_client_by_id(self, id):
@@ -81,11 +44,8 @@ class cliente_DAO:
         WHERE id_cliente = {id}
     '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        user = cursor.fetchone()
-        cursor.close()
-        self.db.close()
+        user = self.database_access_dao.fetch(query)[0]
+        print(user)
 
         if user and (user[5]!=0):
             return user
@@ -100,11 +60,7 @@ class cliente_DAO:
         WHERE nome = '{nome}'
     '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        user = cursor.fetchone()
-        cursor.close()
-        self.db.close()
+        user = self.database_access_dao.fetch(query)[0]
 
         if user:
             return user
@@ -119,13 +75,7 @@ class cliente_DAO:
         WHERE email = '{email}';
     '''
         
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        user = cursor.fetchone()
-        cursor.close()
-        self.db.close()
-
-        print("user: "+str(user))
+        user = self.database_access_dao.fetch(query)[0]
 
         if user and (user[5]!=0):
             return user
@@ -147,11 +97,7 @@ class cliente_DAO:
         SET nome = '{novo_nome}', email = '{novo_email}', telefone = '{novo_telefone}'
         WHERE id_cliente = {id}
     '''
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-        cursor.close()
-        self.db.close() 
+        self.database_access_dao.execute_query(query)
 
         return True
     
@@ -159,17 +105,12 @@ class cliente_DAO:
         #CLIENTE EXISTE?
         cliente = self.get_client_by_id(id)
 
-        cursor = self.open_cursor()
-
         #CLIENTE EXISTE?
         if not cliente:
             return False
         else:
             #DO CONTRÁRIO:
-            cursor.execute(f'''UPDATE cliente SET ativo = 0 WHERE id_cliente = {id}''')
-            self.db.commit()
-
-        cursor.close()
-        self.db.close()
+            query = f'''UPDATE cliente SET ativo = 0 WHERE id_cliente = {id}'''
+            self.database_access_dao.execute_query(query)
 
         return True

@@ -9,21 +9,16 @@
 from flask import Flask, jsonify, request;
 from DAO.cliente_DAO import cliente_DAO as cliente_DAO;
 from DAO.plataforma_DAO import plataforma_DAO;
-<<<<<<< HEAD
-from produto_DAO import produto_DAO
-=======
+from DAO.produto_DAO import produto_DAO
 from DAO.categoria_DAO import categoria_DAO;
->>>>>>> 55fa2d13ceae7cc3f518bf56760669c2195a2429
+from DAO.pedido_DAO import pedido_DAO;
 
 app = Flask(__name__)
 
-cliente_dao = cliente_DAO()
-plataforma_dao = plataforma_DAO()
-<<<<<<< HEAD
+cliente_dao = cliente_DAO() # TESTADO
+plataforma_dao = plataforma_DAO() # TESTADO
 produto_dao = produto_DAO()
-=======
 categoria_dao = categoria_DAO()
->>>>>>> 55fa2d13ceae7cc3f518bf56760669c2195a2429
 
 #CREATE (CADASTRO)
 @app.route('/cadastrar', methods = ['POST'])
@@ -138,7 +133,7 @@ def create_plataforma():
             'message': 'plataforma não foi criada'
         })
     
-#REAG ALL
+#READ ALL
 @app.route('/plataforma', methods=['GET'])
 def get_all_plataforma():
     plataformas = plataforma_dao.get_all_plataforma()
@@ -207,8 +202,6 @@ def delete_plataforma(id):
             'message': 'A plataforma não existe ou ocorreu algum erro'
         })
 
-
-
 # CRUD CATEGORIA
 # CREATE de Categoria
 @app.route('/categoria', methods=['POST'])
@@ -260,6 +253,119 @@ def delete_categoria(id):
     else:
         return jsonify({'message': 'Erro ao deletar a categoria'}), 400
 
+#CRUD PRODUTO
+#CREATE PRODUTO
+@app.route('/produto', methods=['POST'])
+def create_produto():
+
+    produto_criado = produto_dao.cadastrar(request)
+
+    if produto_criado:
+        return jsonify({
+            'message': 'Produto Criado com Sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'não foi possível criar seu produto'
+        })
+
+@app.route('/produto/id/<int:id>', methods=['GET'])
+def get_produto_id(id):
+    produto = produto_dao.get_produto_by_id(id)
+    print(produto)
+
+    if produto and (produto[0]!=0):
+        return jsonify({
+            'id': produto[0],
+            'nome': produto[1],
+            'preco': produto[2],
+            'categoria': produto[3],
+            'plataforma': produto[4],
+            'ativo': produto[5]
+        })
+    else:
+        return jsonify({
+            'message': 'O produto não existe'
+        })
+
+@app.route('/produto/nome/<string:nome>', methods=['GET'])
+def get_produto_nome(nome):
+
+    produtos = produto_dao.get_produto_by_nome(nome)
+
+    result = []
+
+    if produtos is None:
+        result = {
+            'message': 'produto nao encontrado'
+        }
+    else:
+        for prod in produtos:
+
+            if prod and prod[5]!=0:
+                result.append({
+                    'id': prod[0],
+                    'nome': prod[1],
+                    'preco': prod[2],
+                    'categoria': prod[3],
+                    'plataforma': prod[4],
+                    'ativo': prod[5]
+                })
+        
+    return jsonify(result)
+
+@app.route('/produto/plataforma/<string:plataforma>', methods = ['GET'])
+def get_produto_by_plataforma(plataforma):
+    produtos = produto_dao.produto_plataforma(plataforma)
+    result = []
+
+    if produtos is None:
+        result = {
+            'message': 'Produto nao encontrado via Plataforma'
+        }
+    else:
+        for produto in produtos:
+
+            if produto and produto[5]!=0:
+                result.append({
+                    'id': produto[0],
+                    'nome': produto[1],
+                    'preco': produto[2],
+                    'categoria': produto[3],
+                    'plataforma': produto[4],
+                    'ativo': produto[5]
+                })
+    
+    return jsonify(result)
+
+@app.route('/produto/categoria/<string:categoria>')
+def get_produto_by_categoria(categoria):
+    produtos = produto_dao.produto_categoria(categoria)
+    result = []
+
+    if produtos is not None:
+        for produto in produtos:
+            if produto and produto[5]!= 0:
+                result.append({
+                    'id': produto[0],
+                    'nome': produto[1],
+                    'preco': produto[2],
+                    'plataforma': produto[3],
+                    'categoria': produto[4],
+                    'ativo': produto[5]
+                    })
+    else:
+        result.append({
+            'message': 'produto nao encontrado via Categoria'
+        })
+    
+    return jsonify(result)
+
+#CRUD PEDIDO
+#CREATE PEDIDO
+@app.route('/pedido', methods=['POST'])
+def create_pedido():
+    pedido_criado = pedido_DAO.pedido(request)
 
 if __name__ == '__main__':
     app.run(debug=True)
