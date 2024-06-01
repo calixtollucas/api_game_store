@@ -12,6 +12,7 @@ from DAO.plataforma_DAO import plataforma_DAO;
 from DAO.produto_DAO import produto_DAO
 from DAO.categoria_DAO import categoria_DAO;
 from DAO.pedido_DAO import pedido_DAO;
+from DAO.fornecedor_DAO import fornecedor_DAO;
 
 app = Flask(__name__)
 
@@ -19,6 +20,7 @@ cliente_dao = cliente_DAO() # TESTADO
 plataforma_dao = plataforma_DAO() # TESTADO
 produto_dao = produto_DAO()
 categoria_dao = categoria_DAO()
+fornecedor_dao = fornecedor_DAO()
 
 #CREATE (CADASTRO)
 @app.route('/cadastrar', methods = ['POST'])
@@ -360,6 +362,101 @@ def get_produto_by_categoria(categoria):
         })
     
     return jsonify(result)
+
+@app.route('/produto/<int:id>', methods = ['PUT'])
+def update_produto(id):
+    
+    params = {
+        'nome': request.form['nome'],
+        'preco': request.form['preco'],
+        'plataforma':request.form['plataforma'],
+        'categoria': request.form['categoria'],
+    }
+
+    atualizado = produto_dao.atualizar_produto(params, id)
+
+    return jsonify({'message': 'atualizado!'})
+
+#CRUD FORNECEDOR
+#CREATE
+@app.route('/fornecedor', methods=['POST'])
+def create_fornecedor():
+
+    criado = fornecedor_dao.fornecedor(request)
+
+    if criado:
+        return jsonify({
+            'message': 'fornecedor criado com sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'Não foi possível criar o fornecedor'
+        })
+
+#GET FORNECEDOR ID
+@app.route('/fornecedor/id/<int:id>')
+def get_fornecedor_id(id):
+    fornecedor = fornecedor_dao.get_fornecedor_by_id(id)[0]
+
+    if fornecedor and fornecedor[5]!= 0:
+        return jsonify({
+            'id': fornecedor[0],
+            'nome': fornecedor[1],
+            'cnpj': fornecedor[2],
+            'telefone': fornecedor[3],
+            'email': fornecedor[4],
+            'ativo': fornecedor[5]
+        })
+    else:
+        return jsonify({
+            'message': 'Fornecedor não encontrado via ID'
+        })
+    
+#GET FORNECEDOR NOME
+@app.route('/fornecedor/nome/<string:nome>', methods=['GET'])
+def get_fornecedor_nome(nome):
+    fornecedor = fornecedor_dao.get_fornecedor_by_nome(nome)[0]
+
+    if fornecedor and fornecedor[5]!=0:
+        return jsonify({
+            'id': fornecedor[0],
+            'nome': fornecedor[1],
+            'cnpj': fornecedor[2],
+            'telefone': fornecedor[3],
+            'email': fornecedor[4],
+            'ativo': fornecedor[5]
+        })
+    else:
+        return jsonify({
+            'message': 'Fornecedor não encontrado via ID'
+        })
+#UPDATE FORNECEDOR
+@app.route('/fornecedor/<int:id>', methods = ['PUT'])
+def update_fornecedor(id):
+    updated = fornecedor_dao.fornecedor_atualizar(id, request)
+
+    if updated:
+        return jsonify({
+            'message': 'Atualizado'
+        })
+    else:
+        return jsonify({
+            'message': 'Não foi possível atualizar'
+        })
+
+#DELETE FORNECEDOR
+@app.route('/fornecedor/<int:id>', methods = ['DELETE'])
+def delete_fornecedor(id):
+    deletado = fornecedor_dao.fornecedor_desativar(id)
+
+    if deletado:
+        return jsonify({
+            'message': 'Deletado'
+        })
+    else:
+        return jsonify({
+            'message': 'Não foi possível deletar'
+        })
 
 #CRUD PEDIDO
 #CREATE PEDIDO

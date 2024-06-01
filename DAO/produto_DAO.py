@@ -1,5 +1,6 @@
 
 
+from sre_constants import CATEGORY_UNI_LINEBREAK
 from uu import Error
 from flask import Flask, jsonify, request
 import mysql.connector
@@ -123,24 +124,23 @@ class produto_DAO:
     # READ (TIPO) !!!PENDENTE!!!
 
     # UPDATE
-    def atualizar_produto(self, request):
+    def atualizar_produto(self, params, id):
 
-        nome = request.form['nome']
-        preco = request.form['preco']
-        plataforma = request.form['plataforma']
-        categoria = request.form['categoria']
+        #pesquisar o produto a ser atualizado
+        produto_atualizar = self.get_produto_by_id(id)
 
-        try:
-            query = f""" 
-            UPDATE produto
-            SET nome = '{nome}', preco = '{preco}', plataforma = '{plataforma}',categoria = '{categoria}'
-            """
+        #adicionar novos valores num outro dict onde os campos serão os novos caso os mesmos não forem vazios
+        #e caso estiverem, terão os mesmos valores dos campos do produto pesquisado
+        produto_atualizar = {
+            'nome': params['nome'] if (params['nome'] != '') else produto_atualizar[1],
+            'preco': params['preco'] if (params['preco'] != '') else produto_atualizar[2],
+            'plataforma': params['plataforma'] if (params['plataforma'] != '') else produto_atualizar[3],
+            'categoria': params['categoria'] if (params['categoria'] != '') else produto_atualizar[4],
+        }
 
-            self.database_access_dao.execute_query(query)
+        # alterar o produto, juntamente com as tabelas prod_plat e forn_prod
 
-            return True
-        except:
-            return False
+        
 
     # DELETE (desativar)
     def desativar_cliente(self, id):
