@@ -1,114 +1,93 @@
-import mysql.connector;
-from mysql.connector import (errorcode, connection, MySQLConnection)
+from winreg import REG_RESOURCE_LIST
+from DAO.database_access import database_access
 
 class pedido_DAO:
 
     def __init__(self):
-        pass
+        self.database_access_dao = database_access()
 
-    db = None
-    cursor = None
-
-    # função para conectar com o banco de dados
-    def connect_database(self):
-    # OBS: talvez seja preciso mudar as credenciais para usar no seu mysql workbench. De preferência, utilizar a mesma senha
-        print("Conectando no banco")
+    def pedido(self, params):
+        
         try:
-            self.db = mysql.connector.connect(
-            host="127.0.0.1",
-            port="3306",
-            user="root",
-            password="rukasu",
-            database="loja_gamer",
-            )
-        
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
-            else:
-                print(err)
-        else:
-            print("Conectado com sucesso!")
+            query = f'''
+            INSERT 
+            INTO 
+            pedido (endereco, fk_id_cliente, fk_id_produto) 
+            VALUES ("{params['endereco']}", "{params['id_cliente']}", "{params['id_produto']}");
+            '''
 
-    def open_cursor(self):
-        print("Abrindo cursor")
-        if (self.db is None) or not self.db.is_connected():
-            self.connect_database()
-            return self.db.cursor(buffered=True)
-        else:
-            return self.db.cursor(buffered=True)
+            self.database_access_dao.execute_query(query)
 
-    def pedido(self, request):
-        endereco = request.form["endereco"]
-        fk_id_cliente = request.form["fk_id_cliente"]
-        fk_id_probuto = request.form["fk_id_probuto"]
-        
-        query = f'''
-        INSERT 
-        INTO 
-        pedido (endereco, fk_id_cliente, fk_id_probuto) 
-        VALUES ("{endereco}", "{fk_id_cliente}", "{fk_id_probuto}")
-        '''
-
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-
-        cursor.close()
-        self.db.close()
-    
+            return True
+        except:
+            return False
     #READ BY ID
     def get_pedido_by_id(self, id_pedido):
 
         query = f'''
-        "SELECT id_pedido, endereco, fk_id_cliente, fk_id_probuto, ativo 
+        "SELECT * 
         FROM pedido 
         WHERE id_pedido = {id_pedido}",
         '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
+        pedido = self.database_access_dao.fetch(query)
 
-        cursor.close()
-        self.db.close()
+        if pedido:
+            return pedido
+        else:
+            return False
     
     #READ BY ENDERECO
-    def get_pedido_by_cliente_nome(self, endereco):
+    def get_pedido_by_endereco(self, endereco):
         query = f'''
-        "SELECT id_pedido, endereco, fk_id_cliente, fk_id_probuto, ativo 
+        "SELECT * 
         FROM pedido 
         WHERE endereco {endereco}"
         '''
 
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-        cursor.close()
-        self.db.close()
+        pedidos = self.database_access_dao.fetch(query)
+
+        if pedidos:
+            result = []
+            for pedido in pedidos:
+                if pedido[3]!= 0:
+                    result.append(pedido)
+            return pedido
+        else:
+            return None
     
     #READ BY CLIENTE
-    def get_pedido_by_cliente_email(self, fk_id_cliente):
+    def get_pedido_by_id_cliente(self, fk_id_cliente):
         query = f'''
-        "SELECT id_pedido, endereco, fk_id_cliente, fk_id_probuto, ativo 
+        SELECT *
         FROM pedido 
-        WHERE fk_id_cliente {fk_id_cliente}"
+        WHERE fk_id_cliente = {fk_id_cliente};
         '''
     
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-        cursor.close()
-        self.db.close()
+        pedidos = self.database_access_dao.fetch(query)
+
+        if pedidos:
+            result = []
+
+            for pedido in pedidos:
+                if pedido[3] != 0:
+                    result.append({
+                        'id_pedido': pedido[0],
+                        'endereco': pedido[1],
+                        'id_cliente': pedido[2],
+                        'id_produto': pedido[4],
+                        'ativo': pedido[3],
+                    })
+            return result
+        else:
+            return None
+
 
     #UPDATE 
     def pedido_atualizar(self, id_pedido, request):
         novo_endereco = request.form ["endereco"]
         novo_cliente = request.form["fk_id_cliente"]
         novo_probuto = request.form ["fk_id_probuto"]
-        novo_ativo = request.form ["ativo"]
     
         user = self.get_pedido_by_id(id_pedido)
 

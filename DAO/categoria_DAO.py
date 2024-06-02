@@ -52,7 +52,7 @@ class categoria_DAO:
         WHERE nome = '{nome}'
         '''
 
-        categoria = self.database_access_dao.fetch(query)
+        categoria = self.database_access_dao.fetch(query)[0]
 
         if categoria and (categoria[2] != 0):
             return categoria

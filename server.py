@@ -21,6 +21,7 @@ plataforma_dao = plataforma_DAO() # TESTADO
 produto_dao = produto_DAO()
 categoria_dao = categoria_DAO()
 fornecedor_dao = fornecedor_DAO()
+pedido_dao = pedido_DAO()
 
 #CREATE (CADASTRO)
 @app.route('/cadastrar', methods = ['POST'])
@@ -274,7 +275,6 @@ def create_produto():
 @app.route('/produto/id/<int:id>', methods=['GET'])
 def get_produto_id(id):
     produto = produto_dao.get_produto_by_id(id)
-    print(produto)
 
     if produto and (produto[0]!=0):
         return jsonify({
@@ -377,6 +377,20 @@ def update_produto(id):
 
     return jsonify({'message': 'atualizado!'})
 
+#DELETE PRODUTO
+@app.route('/produto/<int:id>', methods = ['DELETE'])
+def delete_produto(id):
+    deletado = produto_dao.desativar_produto(id)
+
+    if deletado:
+        return jsonify({
+            'message': 'produto deletado com sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'não foi possível deletar o produto'
+        })
+
 #CRUD FORNECEDOR
 #CREATE
 @app.route('/fornecedor', methods=['POST'])
@@ -462,7 +476,39 @@ def delete_fornecedor(id):
 #CREATE PEDIDO
 @app.route('/pedido', methods=['POST'])
 def create_pedido():
-    pedido_criado = pedido_DAO.pedido(request)
+  
+    params = {
+        'endereco': request.form["endereco"],
+        'id_cliente': request.form["id_cliente"],
+        'id_produto': request.form["id_produto"]
+    }
+
+    pedido_criado = pedido_dao.pedido(params)
+
+    print(pedido_criado)
+    if pedido_criado:
+        return jsonify({
+            'message': 'pedido criado com sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'não foi possível criar o pedido'
+        })
+    
+#GET PEDIDO BY CLIENTE
+@app.route('/pedido/cliente_id/<int:id>', methods=['GET'])
+def get_pedido_by_id_cliente(id):
+
+    pedido = pedido_dao.get_pedido_by_id_cliente(id)
+
+    if pedido:
+        return jsonify(pedido)
+    else:
+        return jsonify({
+            'message': 'pedido não encontrado'
+        })
+
+#GET PEDIDO ID_CLIENTE
 
 if __name__ == '__main__':
     app.run(debug=True)
