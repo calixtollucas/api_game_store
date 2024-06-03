@@ -25,12 +25,12 @@ class pedido_DAO:
     def get_pedido_by_id(self, id_pedido):
 
         query = f'''
-        "SELECT * 
+        SELECT * 
         FROM pedido 
-        WHERE id_pedido = {id_pedido}",
+        WHERE id_pedido = '{id_pedido}';
         '''
 
-        pedido = self.database_access_dao.fetch(query)
+        pedido = self.database_access_dao.fetch(query)[0]
 
         if pedido:
             return pedido
@@ -40,9 +40,9 @@ class pedido_DAO:
     #READ BY ENDERECO
     def get_pedido_by_endereco(self, endereco):
         query = f'''
-        "SELECT * 
+        SELECT * 
         FROM pedido 
-        WHERE endereco {endereco}"
+        WHERE endereco = '{endereco}';
         '''
 
         pedidos = self.database_access_dao.fetch(query)
@@ -51,8 +51,14 @@ class pedido_DAO:
             result = []
             for pedido in pedidos:
                 if pedido[3]!= 0:
-                    result.append(pedido)
-            return pedido
+                    result.append({
+                        'id_pedido': pedido[0],
+                        'endereco': pedido[1],
+                        'id_cliente': pedido[2],
+                        'id_produto': pedido[4],
+                        'ativo': pedido[3],
+                    })
+            return result
         else:
             return None
     
@@ -84,40 +90,42 @@ class pedido_DAO:
 
 
     #UPDATE 
-    def pedido_atualizar(self, id_pedido, request):
-        novo_endereco = request.form ["endereco"]
-        novo_cliente = request.form["fk_id_cliente"]
-        novo_probuto = request.form ["fk_id_probuto"]
-    
-        user = self.get_pedido_by_id(id_pedido)
+    def pedido_atualizar(self, id_pedido, params):
+        
+        #encontra o pedido que quer atualizar
+        pedido_atualizar = self.get_pedido_by_id(id_pedido)
 
-        query = f'''
-        "UPDATE pedido 
-        SET fk_id_cliente = "{novo_cliente}", endereco = "{novo_endereco}", fk_id_probuto = "{novo_probuto}", 
-        WHERE id_pedido = {id_pedido}
-        '''
-    
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-        cursor.close()
-        self.db.close() 
+        if not pedido_atualizar:
+            return False
+        else:
+            produto_atualizado = {
+                'endereco': params['endereco'] if (params['endereco'] != '') else pedido_atualizar[1],
+                'id_cliente': params['id_cliente'] if (params['id_cliente'] != '') else pedido_atualizar[2],
+                'id_produto': params['id_produto'] if (params['id_produto'] != '') else pedido_atualizar[4],
+            }
 
-        return True
+            query = f'''
+            UPDATE pedido 
+            SET fk_id_cliente = "{produto_atualizado['id_cliente']}", 
+            endereco = "{produto_atualizado["endereco"]}", 
+            fk_id_produto = "{produto_atualizado['id_produto']}"
+            WHERE id_pedido = {id_pedido};
+            '''
+        
+            self.database_access_dao.execute_query(query)
+
+            return True
 
     #DELETE
     def pedido_desativar(self, id_pedido):
+
         pedido = self.get_pedido_by_id(id_pedido)
-        cursor = self.open_cursor()
 
         #pedido EXISTE?
         if not pedido:
             return False
         else:
-            cursor.execute(f'''UPDATE pedido SET ativo = 0 WHERE id_pedido = {id_pedido}''')
-            self.db.commit()
-
-        cursor.close()
-        self.db.close()
+            query = f'''UPDATE pedido SET ativo = 0 WHERE id_pedido = {id_pedido}'''
+            self.database_access_dao.execute_query(query)
 
         return True

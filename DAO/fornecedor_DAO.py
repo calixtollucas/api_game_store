@@ -63,19 +63,16 @@ class fornecedor_DAO:
             return None
     
     #READ BY probuto
-    def get_fornecedor_by_probuto(self, fk_id_probuto):
+    def get_fornecedor_by_produto(self, id_produto):
         query = f'''
-        "SELECT *
-        FROM fornecedor 
-        WHERE fk_id_probuto {fk_id_probuto}"
+        select f.*, prod.nome as produto
+        from fornecedor as f
+        join forn_prod on fk_id_fornecedor = f.id_fornecedor
+        join produto as prod on fk_id_produto = id_produto
+        where prod.id_produto = '{id_produto}';
         '''
     
-        cursor = self.open_cursor()
-        cursor.execute(query)
-        self.db.commit()
-        cursor.close()
-        self.db.close()
-
+        self.database_access_dao.fetch(query)
     #UPDATE 
     def fornecedor_atualizar(self, id_fornecedor, request):
         novo_nome = request.form ["nome"]

@@ -275,6 +275,7 @@ def create_produto():
 @app.route('/produto/id/<int:id>', methods=['GET'])
 def get_produto_id(id):
     produto = produto_dao.get_produto_by_id(id)
+    print(produto)
 
     if produto and (produto[0]!=0):
         return jsonify({
@@ -283,7 +284,8 @@ def get_produto_id(id):
             'preco': produto[2],
             'categoria': produto[3],
             'plataforma': produto[4],
-            'ativo': produto[5]
+            'fornecedor': produto[5],
+            'ativo': produto[6]
         })
     else:
         return jsonify({
@@ -304,14 +306,15 @@ def get_produto_nome(nome):
     else:
         for prod in produtos:
 
-            if prod and prod[5]!=0:
+            if prod and prod[6]!=0:
                 result.append({
                     'id': prod[0],
                     'nome': prod[1],
                     'preco': prod[2],
                     'categoria': prod[3],
                     'plataforma': prod[4],
-                    'ativo': prod[5]
+                    'fornecedor': prod[5],
+                    'ativo': prod[6]
                 })
         
     return jsonify(result)
@@ -328,14 +331,15 @@ def get_produto_by_plataforma(plataforma):
     else:
         for produto in produtos:
 
-            if produto and produto[5]!=0:
+            if produto and produto[6]!=0:
                 result.append({
                     'id': produto[0],
                     'nome': produto[1],
                     'preco': produto[2],
                     'categoria': produto[3],
                     'plataforma': produto[4],
-                    'ativo': produto[5]
+                    'fornecedor': produto[5],
+                    'ativo': produto[6]
                 })
     
     return jsonify(result)
@@ -347,14 +351,15 @@ def get_produto_by_categoria(categoria):
 
     if produtos is not None:
         for produto in produtos:
-            if produto and produto[5]!= 0:
+            if produto and produto[6]!= 0:
                 result.append({
                     'id': produto[0],
                     'nome': produto[1],
                     'preco': produto[2],
                     'plataforma': produto[3],
                     'categoria': produto[4],
-                    'ativo': produto[5]
+                    'fornecedor': produto[5],
+                    'ativo': produto[6]
                     })
     else:
         result.append({
@@ -363,6 +368,7 @@ def get_produto_by_categoria(categoria):
     
     return jsonify(result)
 
+#UPDATE PRODUTO
 @app.route('/produto/<int:id>', methods = ['PUT'])
 def update_produto(id):
     
@@ -371,6 +377,7 @@ def update_produto(id):
         'preco': request.form['preco'],
         'plataforma':request.form['plataforma'],
         'categoria': request.form['categoria'],
+        'fornecedor': request.form['fornecedor']
     }
 
     atualizado = produto_dao.atualizar_produto(params, id)
@@ -507,8 +514,40 @@ def get_pedido_by_id_cliente(id):
         return jsonify({
             'message': 'pedido não encontrado'
         })
+    
+#GET PEDIDO BY ENDERECO
+@app.route('/pedido/endereco/<string:endereco>', methods = ['GET'])
+def get_pedido_by_endereco(endereco):
 
+    pedido = pedido_dao.get_pedido_by_endereco(endereco)
+
+    if pedido:
+        return jsonify(pedido)
+    else:
+        return jsonify({
+            'message': 'pedido nao encontrado'
+        })
+
+#UPDATE PEDIDO
+@app.route('/pedido/<int:id>', methods = ['PUT'])
+def update_pedido(id):
+
+    params = {
+        'endereco': request.form['endereco'],
+        'id_cliente': request.form['id_cliente'],
+        'id_produto': request.form['id_produto']
+    }
+
+    atualizado = pedido_dao.pedido_atualizar(id, params)
+
+    if atualizado:
+        return jsonify({
+            'message': 'pedido atualizado com sucesso'
+        })
+    else:
+        return jsonify({
+            'message': 'nao foi possivel atualizar o pedido especificado'
+        })
 #GET PEDIDO ID_CLIENTE
-
 if __name__ == '__main__':
     app.run(debug=True)
